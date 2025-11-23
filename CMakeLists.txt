@@ -16,14 +16,15 @@ find_package(mocap4r2_msgs REQUIRED)
 
 # Add executable for mocap_tf2_broadcaster
 add_executable(mocap_tf2_broadcaster src/mocap_tf2_broadcaster.cpp)
-ament_target_dependencies(mocap_tf2_broadcaster
-  rclcpp
-  tf2
-  tf2_ros
-  tf2_msgs
-  geometry_msgs
-  mocap4r2_msgs
-)
+target_link_libraries(mocap_tf2_broadcaster PUBLIC
+      ${geometry_msgs_TARGETS}
+      ${mocap4r2_msgs_TARGETS}
+      ${tf2_msgs_TARGETS}
+      rclcpp::rclcpp
+      tf2::tf2
+      tf2_ros::static_transform_broadcaster_node
+      tf2_ros::tf2_ros
+    )
 
 # Install the executable
 install(TARGETS
