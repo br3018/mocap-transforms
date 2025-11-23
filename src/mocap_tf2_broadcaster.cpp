@@ -36,13 +36,13 @@ class MocapTF2Broadcaster : public rclcpp::Node
                     t.header.frame_id = "world";
                     t.child_frame_id = rigidbody.rigid_body_name;
                     // Populate the transform data.
-                    t.transform.translation.x = rigidbody.position.x;
-                    t.transform.translation.y = rigidbody.position.y;
-                    t.transform.translation.z = rigidbody.position.z;
-                    t.transform.rotation.x = rigidbody.orientation.x;
-                    t.transform.rotation.y = rigidbody.orientation.y;
-                    t.transform.rotation.z = rigidbody.orientation.z;
-                    t.transform.rotation.w = rigidbody.orientation.w;
+                    t.transform.translation.x = rigidbody.pose.position.x;
+                    t.transform.translation.y = rigidbody.pose.position.y;
+                    t.transform.translation.z = rigidbody.pose.position.z;
+                    t.transform.rotation.x = rigidbody.pose.orientation.x;
+                    t.transform.rotation.y = rigidbody.pose.orientation.y;
+                    t.transform.rotation.z = rigidbody.pose.orientation.z;
+                    t.transform.rotation.w = rigidbody.pose.orientation.w;
 
                     // Broadcast the transform.
                     tf_broadcaster_->sendTransform(t);
