@@ -26,9 +26,19 @@ target_link_libraries(mocap_tf2_broadcaster PUBLIC
       tf2_ros::tf2_ros
     )
 
+# Add executable for mocap_tf2_post_processor
+add_executable(mocap_tf2_post_processor src/mocap_tf2_post_processor.cpp)
+target_link_libraries(mocap_tf2_post_processor PUBLIC
+      ${geometry_msgs_TARGETS}
+      rclcpp::rclcpp
+      tf2::tf2
+      tf2_ros::tf2_ros
+    )
+
 # Install the executable
 install(TARGETS
   mocap_tf2_broadcaster
+  mocap_tf2_post_processor
   DESTINATION lib/${PROJECT_NAME}
 )
 
