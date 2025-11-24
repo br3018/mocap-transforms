@@ -17,7 +17,7 @@ class MocapTF2Broadcaster : public rclcpp::Node
 {
     public:
         MocapTF2Broadcaster()
-        : Node("mocap_tf2_broadcaster", rclcpp::NodeOptions().enable_logger_service(true))
+        : Node("mocap_tf2_broadcaster")
         {
             RCLCPP_INFO(this->get_logger(), "Mocap TF2 Broadcaster Node has been started.");
 
