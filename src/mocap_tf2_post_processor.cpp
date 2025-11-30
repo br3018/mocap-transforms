@@ -21,10 +21,11 @@
 #include "geometry_msgs/msg/pose.hpp"
 
 // Define constants. 
-const int GRASP_STREAM_ID = 1;
-const int RAFTI_STREAM_ID = 2;
-const float AVERAGING_INTERVAL = 0.1; // [s]
-const float PROCESSING_FREQUENCY = 10.0; // [Hz]
+const int GRASP_STREAM_ID = 1; // Streaming ID for GRASP
+const int RAFTI_STREAM_ID = 2; // Streaming ID for RAFTI
+const float PROCESSING_FREQUENCY = 50.0; // [Hz] Frequency to update pose and twist
+const std::chrono::duration<double> TWIST_COMPUTE_INTERVAL = 100ms; // [ms] (100 ms) Interval to compute twist
+const double MIN_DT = 1e-4; // [s] Minimum allowed time difference in seconds between transforms for twist computation
 
 class MocapTF2PostProcessor : public rclcpp::Node
 {
@@ -68,10 +69,32 @@ private:
     {
         // Get the latest transforms.
         geometry_msgs::msg::TransformStamped relative_transform;
+        tf2::Transform relative_tf;
 
         try
         {
             relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), tf2::TimePointZero);
+            // Convert to tf::Transform
+            tf2::fromMsg(relative_transform.transform, relative_tf);
+        }
+        catch (tf2::TransformException &ex)
+        {
+            RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
+            return;
+        }
+        // Find latest transform time and retrieve previous transform for twist calculation.
+        rclcpp::Time latest_time = relative_transform.header.stamp;
+        rclcpp::Time previous_time_target = latest_time - rclcpp::Duration(TWIST_COMPUTE_INTERVAL);
+        
+        // Get the previous transform.
+        geometry_msgs::msg::TransformStamped prev_relative_transform;
+        tf2::Transform prev_relative_tf;
+
+        try
+        {
+            prev_relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), previous_time_target);
+            // Convert to tf::Transform
+            tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
         }
         catch (tf2::TransformException &ex)
         {
@@ -79,19 +102,46 @@ private:
             return;
         }
 
+        // Get the actual previous time from the retrieved transform.
+        rclcpp::Time previous_time = prev_relative_transform.header.stamp;
+        double dt = (latest_time - previous_time).seconds();
+        // Check for zero or near-zero dt to avoid division by zero or large velocity spikes
+        if (dt < MIN_DT) {
+            RCLCPP_WARN(this->get_logger(), "Insufficiently large time difference between transforms for twist computation (dt = %g s). Skipping velocity calculation.", dt);
+            return;
+        }
+
+        // Calculate twist (linear and angular velocity)
+        // Linear velocity
+        tf2::Vector3 relative_linear_vel = (relative_tf.getOrigin() - prev_relative_tf.getOrigin()) / dt;
+        // Angular velocity
+        tf2::Quaternion dq = relative_tf.getRotation() * prev_relative_tf.getRotation().inverse();
+        dq.normalize();
+        tf2::Vector3 relative_angular_vel = dq.getAxis() * (dq.getAngleShortestPath() / dt);
+
         // Convert transforms to pose messages.
         geometry_msgs::msg::PoseStamped relative_pose;
-        relative_pose.header.stamp = rclcpp::Clock().now();
+        relative_pose.header.stamp = latest_time;
         relative_pose.header.frame_id = std::to_string(RAFTI_STREAM_ID);
         relative_pose.pose.position.x = relative_transform.transform.translation.x;
         relative_pose.pose.position.y = relative_transform.transform.translation.y;
         relative_pose.pose.position.z = relative_transform.transform.translation.z;
         relative_pose.pose.orientation = relative_transform.transform.rotation;
 
-        
+        // Convert twist to twist message.
+        geometry_msgs::msg::TwistStamped relative_twist;
+        relative_twist.header.stamp = latest_time;
+        relative_twist.header.frame_id = std::to_string(RAFTI_STREAM_ID);
+        relative_twist.twist.linear.x = relative_linear_vel.x();
+        relative_twist.twist.linear.y = relative_linear_vel.y();
+        relative_twist.twist.linear.z = relative_linear_vel.z();
+        relative_twist.twist.angular.x = relative_angular_vel.x();
+        relative_twist.twist.angular.y = relative_angular_vel.y();
+        relative_twist.twist.angular.z = relative_angular_vel.z();
 
         // Publish the relative pose.
         relative_pose_publisher_->publish(relative_pose);
+        relative_twist_publisher_->publish(relative_twist);
     }
 };
 
