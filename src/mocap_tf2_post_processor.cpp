@@ -19,12 +19,13 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/pose.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 // Define constants. 
 const int GRASP_STREAM_ID = 1; // Streaming ID for GRASP
 const int RAFTI_STREAM_ID = 2; // Streaming ID for RAFTI
 const float PROCESSING_FREQUENCY = 50.0; // [Hz] Frequency to update pose and twist
-const std::chrono::duration<double> TWIST_COMPUTE_INTERVAL = 100ms; // [ms] (100 ms) Interval to compute twist
+const auto TWIST_COMPUTE_INTERVAL = std::chrono::milliseconds(100); // [ms] (100 ms) Interval to compute twist
 const double MIN_DT = 1e-4; // [s] Minimum allowed time difference in seconds between transforms for twist computation
 
 class MocapTF2PostProcessor : public rclcpp::Node

@@ -13,6 +13,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(mocap4r2_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 # Add executable for mocap_tf2_broadcaster
 add_executable(mocap_tf2_broadcaster src/mocap_tf2_broadcaster.cpp)
@@ -33,6 +34,7 @@ target_link_libraries(mocap_tf2_post_processor PUBLIC
       rclcpp::rclcpp
       tf2::tf2
       tf2_ros::tf2_ros
+      tf2_geometry_msgs::tf2_geometry_msgs
     )
 
 # Install the executable
