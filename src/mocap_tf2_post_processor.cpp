@@ -80,7 +80,8 @@ private:
         }
         catch (tf2::TransformException &ex)
         {
-            RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
+            // Skip quietly if transform doesn't exist yet
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Transform not available yet: %s", ex.what());
             return;
         }
         // Find latest transform time and retrieve previous transform for twist calculation.
@@ -99,7 +100,8 @@ private:
         }
         catch (tf2::TransformException &ex)
         {
-            RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
+            // Skip quietly if previous transform doesn't exist yet
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Previous transform not available yet: %s", ex.what());
             return;
         }
 
@@ -108,7 +110,7 @@ private:
         double dt = (latest_time - previous_time).seconds();
         // Check for zero or near-zero dt to avoid division by zero or large velocity spikes
         if (dt < MIN_DT) {
-            RCLCPP_WARN(this->get_logger(), "Insufficiently large time difference between transforms for twist computation (dt = %g s). Skipping velocity calculation.", dt);
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Insufficiently large time difference between transforms for twist computation (dt = %g s). Skipping velocity calculation.", dt);
             return;
         }
 
