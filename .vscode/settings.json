@@ -1,6 +1,7 @@
 {
     "ros.distro": "humble",
     "files.associations": {
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "functional": "cpp"
     }
 }

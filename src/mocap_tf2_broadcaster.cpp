@@ -12,6 +12,7 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "mocap4r2_msgs/msg/rigid_bodies.hpp"
 #include "mocap4r2_msgs/msg/rigid_body.hpp"
+using std::placeholders::_1;
 
 class MocapTF2Broadcaster : public rclcpp::Node
 {
@@ -28,7 +29,7 @@ class MocapTF2Broadcaster : public rclcpp::Node
             // Subscribe to the rigid_bodies topic.
             subscription_ = this->create_subscription<mocap4r2_msgs::msg::RigidBodies>(
                 "rigid_bodies", 10,
-                handle_rigid_bodies);
+                std::bind(&MocapTF2Broadcaster::handle_rigid_bodies, this, _1));
 
             still_processing = false;
         }
