@@ -51,6 +51,18 @@ public:
             std::chrono::duration<float>(1.0 / PROCESSING_FREQUENCY),
             std::bind(&MocapTF2PostProcessor::process_transforms, this));
 
+        while(!initialised_tf){
+            try{
+                prev_relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), tf2::TimePointZero);
+                // Convert to tf::Transform
+                tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
+                initialised_tf = true;
+            }
+            catch (tf2::TransformException &ex)
+            {
+                RCLCPP_WARN(this->get_logger(), "Initial transform error: %s", ex.what());
+            }
+        }
     }
 
 private:
@@ -84,12 +96,6 @@ private:
             relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), tf2::TimePointZero);
             // Convert to tf::Transform
             tf2::fromMsg(relative_transform.transform, relative_tf);
-            if(!initialised_tf){
-                prev_relative_transform = relative_transform;
-                // Convert to tf::Transform
-                tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
-                initialised_tf = true;
-            }
         }
         catch (tf2::TransformException &ex)
         {
@@ -122,17 +128,6 @@ private:
         // Check for zero or near-zero dt to avoid division by zero or large velocity spikes
         if (dt < MIN_DT) {
             RCLCPP_WARN(this->get_logger(), "Insufficiently large time difference between transforms for twist computation (dt = %g s). Skipping velocity calculation.", dt);
-            try
-            {
-                prev_relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), tf2::TimePointZero);
-                // Convert to tf::Transform
-                tf2::fromMsg(relative_transform.transform, relative_tf);
-            }
-            catch (tf2::TransformException &ex)
-            {
-                RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
-                return;
-            }
 
             return;
         }
