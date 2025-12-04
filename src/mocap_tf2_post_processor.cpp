@@ -122,6 +122,9 @@ private:
         // Check for zero or near-zero dt to avoid division by zero or large velocity spikes
         if (dt < MIN_DT) {
             RCLCPP_WARN(this->get_logger(), "Insufficiently large time difference between transforms for twist computation (dt = %g s). Skipping velocity calculation.", dt);
+            prev_relative_transform = relative_transform;
+            // Convert to tf::Transform
+            tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
             return;
         }
 
