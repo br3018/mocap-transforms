@@ -42,9 +42,9 @@ public:
 
         // Create relative pose and twist publisher GRASP w.r.t RAFTI.
         relative_pose_publisher_ =
-        this->create_publisher<geometry_msgs::msg::PoseStamped>("relative_pose", 1);
+        this->create_publisher<geometry_msgs::msg::PoseStamped>("relative_pose", 10);
         relative_twist_publisher_ =
-        this->create_publisher<geometry_msgs::msg::TwistStamped>("relative_twist", 1);
+        this->create_publisher<geometry_msgs::msg::TwistStamped>("relative_twist", 10);
 
         while(!initialised_tf){
             try{
@@ -128,7 +128,7 @@ private:
         // Get the actual previous time from the retrieved transform.
         rclcpp::Time previous_time = prev_relative_transform.header.stamp;
         double dt = (latest_time - previous_time).seconds();
-        RCLCPP_INFO(this->get_logger(), "dt: " << dt);
+        // RCLCPP_INFO(this->get_logger(), "dt: " << dt);
         // Check for zero or near-zero dt to avoid division by zero or large velocity spikes
         if (dt < MIN_DT) {
             RCLCPP_WARN(this->get_logger(), "Insufficiently large time difference between transforms for twist computation (dt = %g s). Skipping velocity calculation.", dt);
