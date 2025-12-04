@@ -21,7 +21,7 @@
 #include "geometry_msgs/msg/pose.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
-// Define constants. 
+// Define constants.
 const int GRASP_STREAM_ID = 1; // Streaming ID for GRASP
 const int RAFTI_STREAM_ID = 2; // Streaming ID for RAFTI
 const float PROCESSING_FREQUENCY = 50.0; // [Hz] Frequency to update pose and twist
@@ -65,6 +65,13 @@ private:
     // Timer.
     rclcpp::TimerBase::SharedPtr timer_;
 
+    // store for last transforms
+    tf2::Transform prev_relative_tf;
+    geometry_msgs::msg::TransformStamped prev_relative_transform;
+
+    // bool value to initialise last transform value
+    bool initialised_tf{false};
+
     // Process transforms.
     void process_transforms()
     {
@@ -77,6 +84,12 @@ private:
             relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), tf2::TimePointZero);
             // Convert to tf::Transform
             tf2::fromMsg(relative_transform.transform, relative_tf);
+            if(!initialised_tf){
+                prev_relative_transform = relative_transform;
+                // Convert to tf::Transform
+                tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
+                initialised_tf = true;
+            }
         }
         catch (tf2::TransformException &ex)
         {
@@ -86,22 +99,22 @@ private:
         // Find latest transform time and retrieve previous transform for twist calculation.
         rclcpp::Time latest_time = relative_transform.header.stamp;
         rclcpp::Time previous_time_target = latest_time - rclcpp::Duration(TWIST_COMPUTE_INTERVAL);
-        
-        // Get the previous transform.
-        geometry_msgs::msg::TransformStamped prev_relative_transform;
-        tf2::Transform prev_relative_tf;
 
-        try
-        {
-            prev_relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), previous_time_target);
-            // Convert to tf::Transform
-            tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
-        }
-        catch (tf2::TransformException &ex)
-        {
-            RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
-            return;
-        }
+        // Get the previous transform.
+        // geometry_msgs::msg::TransformStamped prev_relative_transform;
+        // tf2::Transform prev_relative_tf;
+
+        // try
+        // {
+        //     prev_relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), previous_time_target);
+        //     // Convert to tf::Transform
+        //     tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
+        // }
+        // catch (tf2::TransformException &ex)
+        // {
+        //     RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
+        //     return;
+        // }
 
         // Get the actual previous time from the retrieved transform.
         rclcpp::Time previous_time = prev_relative_transform.header.stamp;
@@ -143,6 +156,10 @@ private:
         // Publish the relative pose.
         relative_pose_publisher_->publish(relative_pose);
         relative_twist_publisher_->publish(relative_twist);
+
+        prev_relative_transform = relative_transform;
+        // Convert to tf::Transform
+        tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
     }
 };
 
