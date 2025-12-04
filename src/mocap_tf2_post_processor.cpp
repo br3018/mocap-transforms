@@ -46,16 +46,12 @@ public:
         relative_twist_publisher_ =
         this->create_publisher<geometry_msgs::msg::TwistStamped>("relative_twist", 1);
 
-        // Create timer for periodic processing.
-        timer_ = this->create_wall_timer(
-            std::chrono::duration<float>(1.0 / PROCESSING_FREQUENCY),
-            std::bind(&MocapTF2PostProcessor::process_transforms, this));
-
         while(!initialised_tf){
             try{
                 prev_relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), tf2::TimePointZero);
                 // Convert to tf::Transform
                 tf2::fromMsg(prev_relative_transform.transform, prev_relative_tf);
+                prev_relative_transform.header.stamp = this->get_clock()->now();
                 initialised_tf = true;
             }
             catch (tf2::TransformException &ex)
@@ -63,6 +59,12 @@ public:
                 RCLCPP_WARN(this->get_logger(), "Initial transform error: %s", ex.what());
             }
         }
+
+        // Create timer for periodic processing.
+        timer_ = this->create_wall_timer(
+            std::chrono::duration<float>(1.0 / PROCESSING_FREQUENCY),
+            std::bind(&MocapTF2PostProcessor::process_transforms, this));
+
     }
 
 private:
@@ -94,6 +96,7 @@ private:
         try
         {
             relative_transform = tf_buffer_->lookupTransform(std::to_string(RAFTI_STREAM_ID), std::to_string(GRASP_STREAM_ID), tf2::TimePointZero);
+            relative_transform.header.stamp = this->get_clock()->now();
             // Convert to tf::Transform
             tf2::fromMsg(relative_transform.transform, relative_tf);
         }
@@ -125,6 +128,7 @@ private:
         // Get the actual previous time from the retrieved transform.
         rclcpp::Time previous_time = prev_relative_transform.header.stamp;
         double dt = (latest_time - previous_time).seconds();
+        RCLCPP_INFO(this->get_logger(), "dt: " << dt);
         // Check for zero or near-zero dt to avoid division by zero or large velocity spikes
         if (dt < MIN_DT) {
             RCLCPP_WARN(this->get_logger(), "Insufficiently large time difference between transforms for twist computation (dt = %g s). Skipping velocity calculation.", dt);
