@@ -34,7 +34,7 @@ class MocapTF2Broadcaster : public rclcpp::Node
                 "rigid_bodies", 10,
                 std::bind(&MocapTF2Broadcaster::cb_rigid_bodies, this, _1));
 
-            timer_ = this->create_wall_timer(10ms, std::bind(&MocapTF2Broadcaster::send_transform, this));
+            timer_ = this->create_wall_timer(20ms, std::bind(&MocapTF2Broadcaster::send_transform, this));
         }
 
 private:
